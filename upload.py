@@ -209,7 +209,7 @@ def main():
         return
 
     try:
-        print("Uploading...")
+        print("\nUploading...")
         # Create the topic
         topic_id = create_topic(title, description, graph_file, visibility, allow_anyone_to_edit, app_session)
         print(f"✓ Topic created successfully!")
