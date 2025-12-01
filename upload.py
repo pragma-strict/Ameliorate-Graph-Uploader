@@ -1,22 +1,28 @@
 import requests
 import json
 import os
+import re
 
 
-def get_user_input():
-    """Prompt the user for topic title, description, and app session cookie."""
-    # Welcome message
-    print("=" * 60)
-    print("Ameliorate Graph Uploader")
-    print("=" * 60)
-    print()
-    
-    # Get topic title
-    topic_title = input("Enter topic title: ").strip()
-    if not topic_title:
-        raise ValueError("Topic title cannot be empty")
-    
-    # Get description
+def get_title():
+    """Get the topic title from the user."""
+    title = ""
+    is_title_valid = False
+    while not is_title_valid:
+        print("Enter topic title:")
+        title = input().strip().replace(" ", "-")
+        if not title:
+            print("Topic title cannot be empty")
+        elif not re.match(r'^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$', title):
+            print("Topic title may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen.")
+        else:
+            is_title_valid = True
+    return title
+
+
+
+def get_description():
+    """Get the topic description from the user."""
     print("\nEnter topic description (press Enter twice when finished):")
     description_lines = []
     while True:
@@ -28,8 +34,12 @@ def get_user_input():
     description = "\n".join(description_lines).strip()
     if not description:
         raise ValueError("Description cannot be empty")
-    
-    # Get graph file
+    return description
+
+
+
+def get_graph_file():
+    """Get the graph file from the user."""
     print("\nEnter relative path to graph file (leave blank for default graph.json):")
     graph_file = input().strip()
     if not graph_file:
@@ -37,8 +47,12 @@ def get_user_input():
     graph_file = os.path.join(os.path.dirname(__file__), graph_file)
     if not os.path.exists(graph_file):
         raise ValueError(f"Graph file {graph_file} does not exist")
+    return graph_file
 
-    # Get visibility
+
+
+def get_visibility():
+    """Get the visibility from the user."""
     print("\nMake the graph visible to everyone? (y/n)")
     visibility = input().strip()
     if visibility == "y":
@@ -47,8 +61,12 @@ def get_user_input():
         visibility = "private"
     else:
         raise ValueError("Invalid visibility")
+    return visibility
 
-    # Get allow anyone to edit
+
+
+def get_allow_anyone_to_edit():
+    """Get the allow anyone to edit from the user."""
     print("\nAllow anyone to edit the graph? (y/n)")
     allow_anyone_to_edit = input().strip()
     if allow_anyone_to_edit == "y":
@@ -57,14 +75,17 @@ def get_user_input():
         allow_anyone_to_edit = False
     else:
         raise ValueError("Invalid allow anyone to edit")
+    return allow_anyone_to_edit
 
-    # Get app session cookie
+
+
+def get_app_session():
+    """Get the app session cookie from the user."""
     print("\nEnter app session cookie:")
     app_session = input().strip()
     if not app_session:
         raise ValueError("App session cookie cannot be empty")
-    
-    return topic_title, description, graph_file, visibility, allow_anyone_to_edit, app_session
+    return app_session
 
 
 
@@ -163,24 +184,38 @@ def upload_graph(graph_file, topic_id, app_session):
     
 
 def main():
-    """Main function to run the topic creation script."""
+    # Welcome message
+    print("=" * 60)
+    print("Ameliorate Graph Uploader")
+    print("=" * 60)
+    print()
+
+    # Get user input
     try:
-        # Get user input
-        title, description, graph_file, visibility, allow_anyone_to_edit, app_session = get_user_input()
-        
+        title = get_title()
+        description = get_description()
+        graph_file = get_graph_file()
+        visibility = get_visibility()
+        allow_anyone_to_edit = get_allow_anyone_to_edit()
+        app_session = get_app_session()
+    except KeyboardInterrupt:
+        print("\n✗ Operation cancelled by user")
+        return
+    except ValueError as e:
+        print(f"\n✗ ValueError: {e}")
+        return
+    except Exception as e:
+        print(f"\n✗ Unexpected error: {e}")
+        return
+
+    try:
+        print("Uploading...")
         # Create the topic
-        print("Creating topic...")
         topic_id = create_topic(title, description, graph_file, visibility, allow_anyone_to_edit, app_session)
-        
-        # Display result
         print(f"✓ Topic created successfully!")
-        print(f"Topic ID: {topic_id}")
         
         # Upload the graph
-        print("\nUploading graph...")
         upload_graph(graph_file, topic_id, app_session)
-        
-        # Display result
         print(f"✓ Graph uploaded successfully!")
         
     except ValueError as e:
@@ -189,8 +224,11 @@ def main():
         print(f"\n✗ API Error: {e}")
         if hasattr(e, 'response') and e.response is not None:
             print(f"Response: {e.response.text}")
+    except KeyboardInterrupt:
+        print("\n✗ Operation cancelled by user")
     except Exception as e:
         print(f"\n✗ Unexpected error: {e}")
+    return
 
 
 if __name__ == "__main__":
